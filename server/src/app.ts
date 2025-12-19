@@ -12,6 +12,7 @@ import skillRoutes from './routes/skill.routes'
 import departmentRoutes from './routes/department.routes'
 import teamRoutes from './routes/team.routes'
 import projectRoutes from './routes/project.routes'
+import userRoutes from './routes/user.routes'
 
 const app: Application = express()
 
@@ -45,6 +46,7 @@ app.use(`${apiPrefix}/skills`, skillRoutes)
 app.use(`${apiPrefix}/departments`, departmentRoutes)
 app.use(`${apiPrefix}/teams`, teamRoutes)
 app.use(`${apiPrefix}/projects`, projectRoutes)
+app.use(`${apiPrefix}/users`, userRoutes)
 
 // 404 handler
 app.use((req: Request, res: Response) => {

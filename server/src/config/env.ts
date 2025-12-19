@@ -5,7 +5,7 @@ dotenv.config()
 export const config = {
   // Application
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: parseInt(process.env.PORT || '9999', 10),
   apiPrefix: process.env.API_PREFIX || '/api',
 
   // Database
@@ -24,6 +24,7 @@ export const config = {
   },
 
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3001',
 }
+
 

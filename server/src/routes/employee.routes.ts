@@ -69,3 +69,4 @@ router.get('/:id/vacations', authenticate, employeeController.getVacations)
 
 export default router
 
+

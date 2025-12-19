@@ -180,8 +180,8 @@ telescope/
    ```
 
 7. **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3000/api
+   - Frontend: http://localhost:1001
+   - Backend API: http://localhost:9999/api
 
 ---
 
