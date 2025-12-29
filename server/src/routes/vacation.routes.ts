@@ -38,3 +38,4 @@ router.put('/:id/cancel', authenticate, vacationController.cancel)
 export default router
 
 
+

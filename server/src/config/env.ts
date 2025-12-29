@@ -24,7 +24,8 @@ export const config = {
   },
 
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:3002',
 }
+
 
 

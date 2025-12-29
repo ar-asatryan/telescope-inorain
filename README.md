@@ -61,6 +61,12 @@ A comprehensive web application for managing employee information, vacations, ti
 - Team leads and reporting structure
 - Cross-functional team support
 
+### 🛡️ Admin Panel
+- User management (create, edit, delete users)
+- Role-based access control
+- System configuration
+- Audit logs and activity monitoring
+
 ---
 
 ## 🛠️ Tech Stack
@@ -84,18 +90,16 @@ telescope/
 ├── README.md
 ├── docker-compose.yml          # PostgreSQL & services
 │
-├── client/                     # React Frontend
+├── client/                     # React Frontend (Main App)
 │   ├── public/
 │   ├── src/
-│   │   ├── assets/            # Images, fonts, static files
 │   │   ├── components/        # Reusable UI components
-│   │   │   ├── common/        # Buttons, inputs, modals
 │   │   │   ├── layout/        # Header, sidebar, footer
-│   │   │   └── features/      # Feature-specific components
+│   │   │   └── ProtectedRoute.tsx
 │   │   ├── pages/             # Page components
 │   │   ├── hooks/             # Custom React hooks
 │   │   ├── services/          # API service functions
-│   │   ├── store/             # State management
+│   │   ├── store/             # State management (Zustand)
 │   │   ├── types/             # TypeScript interfaces
 │   │   ├── utils/             # Helper functions
 │   │   ├── App.tsx
@@ -103,9 +107,23 @@ telescope/
 │   │   └── index.css
 │   ├── index.html
 │   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
+│   ├── vite.config.ts         # Port: 3001
 │   └── tailwind.config.js
+│   │
+│   └── admin/                  # React Admin Panel
+│       ├── public/
+│       ├── src/
+│       │   ├── components/    # Admin UI components
+│       │   │   ├── layout/    # AdminLayout, Header, Sidebar
+│       │   │   └── ProtectedRoute.tsx
+│       │   ├── pages/         # Dashboard, Login, Users
+│       │   ├── services/      # API service functions
+│       │   ├── store/         # Auth state (Zustand)
+│       │   └── types/
+│       ├── index.html
+│       ├── package.json
+│       ├── vite.config.ts     # Port: 3002
+│       └── tailwind.config.js
 │
 └── server/                     # Node.js Backend
     ├── src/
@@ -116,9 +134,8 @@ telescope/
     │   ├── routes/            # API routes
     │   ├── middlewares/       # Auth, validation, error handling
     │   ├── utils/             # Helper functions
-    │   ├── types/             # TypeScript interfaces
     │   ├── app.ts             # Express app setup
-    │   └── index.ts           # Entry point
+    │   └── index.ts           # Entry point (Port: 9999)
     ├── package.json
     └── tsconfig.json
 ```
@@ -130,10 +147,10 @@ telescope/
 ### Prerequisites
 
 - Node.js 18+ 
-- PostgreSQL 15+ (or Docker)
-- npm or yarn
+- Docker & Docker Compose (for PostgreSQL database)
+- npm
 
-### Installation
+### Quick Start
 
 1. **Clone the repository**
    ```bash
@@ -145,43 +162,76 @@ telescope/
    ```bash
    docker-compose up -d postgres
    ```
+   
+   This starts PostgreSQL on port `5432` with these default credentials:
+   | Setting | Value |
+   |---------|-------|
+   | Host | localhost |
+   | Port | 5432 |
+   | Username | telescope |
+   | Password | telescope_password |
+   | Database | telescope |
 
-3. **Install server dependencies**
+   *(Optional)* Start pgAdmin for database management UI:
+   ```bash
+   docker-compose up -d pgadmin
+   ```
+   Access pgAdmin at http://localhost:5050 (login: `admin@inorain.com` / `admin123`)
+
+3. **Setup the backend server**
    ```bash
    cd server
    npm install
-   cp .env.example .env
-   # Edit .env with your database credentials
+   ```
+   
+   Create a `.env` file in the `server/` directory:
+   ```env
+   NODE_ENV=development
+   PORT=9999
+   API_PREFIX=/api
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USERNAME=telescope
+   DB_PASSWORD=telescope_password
+   DB_DATABASE=telescope
+   JWT_SECRET=your_jwt_secret_key_change_in_production
+   JWT_EXPIRES_IN=7d
+   CORS_ORIGIN=http://localhost:3001,http://localhost:3002
    ```
 
-4. **Run database migrations**
+4. **Start the backend server**
    ```bash
-   npm run migration:run
-   ```
-
-5. **Install client dependencies**
-   ```bash
-   cd ../client
-   npm install
-   ```
-
-6. **Start development servers**
-
-   In one terminal (backend):
-   ```bash
-   cd server
    npm run dev
    ```
 
-   In another terminal (frontend):
+5. **Setup and start the main frontend** (in a new terminal)
    ```bash
    cd client
+   npm install
    npm run dev
    ```
 
-7. **Access the application**
-   - Frontend: http://localhost:1001
-   - Backend API: http://localhost:9999/api
+6. **Setup and start the admin panel** (in a new terminal)
+   ```bash
+   cd client/admin
+   npm install
+   npm run dev
+   ```
+
+7. **(Optional) Seed the database with sample data**
+   ```bash
+   cd server
+   npm run seed
+   ```
+
+### Access the Application
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Main Frontend | http://localhost:3001 | Employee-facing application |
+| Admin Panel | http://localhost:3002 | Administrative dashboard |
+| Backend API | http://localhost:9999/api | REST API endpoints |
+| pgAdmin | http://localhost:5050 | Database management UI |
 
 ---
 
@@ -311,6 +361,15 @@ telescope/
 | GET | `/api/projects/:id` | Get project details |
 | GET | `/api/projects/:id/team` | Get project team |
 
+### Users (Admin)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users |
+| GET | `/api/users/:id` | Get user by ID |
+| POST | `/api/users` | Create new user |
+| PUT | `/api/users/:id` | Update user |
+| DELETE | `/api/users/:id` | Delete user |
+
 ---
 
 ## ⚙️ Environment Variables
@@ -320,28 +379,30 @@ telescope/
 ```env
 # Application
 NODE_ENV=development
-PORT=3000
+PORT=9999
 API_PREFIX=/api
 
 # Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=telescope
-DB_PASSWORD=your_secure_password
+DB_PASSWORD=telescope_password
 DB_DATABASE=telescope
 
 # JWT
-JWT_SECRET=your_jwt_secret_key
+JWT_SECRET=your_jwt_secret_key_change_in_production
 JWT_EXPIRES_IN=7d
 
-# CORS
-CORS_ORIGIN=http://localhost:5173
+# CORS (comma-separated for multiple origins)
+CORS_ORIGIN=http://localhost:3001,http://localhost:3002
 ```
 
-### Client (.env)
+### Client (.env) - Optional
+
+The clients use Vite's proxy feature, so no `.env` file is required for local development. If needed:
 
 ```env
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:9999/api
 ```
 
 ---
@@ -350,9 +411,9 @@ VITE_API_URL=http://localhost:3000/api
 
 ### Available Scripts
 
-#### Server
+#### Server (`server/`)
 ```bash
-npm run dev          # Start development server with hot reload
+npm run dev          # Start development server with hot reload (port 9999)
 npm run build        # Build for production
 npm run start        # Start production server
 npm run migration:generate  # Generate new migration
@@ -363,13 +424,20 @@ npm run test         # Run tests
 npm run lint         # Run ESLint
 ```
 
-#### Client
+#### Main Client (`client/`)
 ```bash
-npm run dev          # Start Vite dev server
+npm run dev          # Start Vite dev server (port 3001)
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
 npm run test         # Run tests
+```
+
+#### Admin Panel (`client/admin/`)
+```bash
+npm run dev          # Start Vite dev server (port 3002)
+npm run build        # Build for production
+npm run preview      # Preview production build
 ```
 
 ### Code Style
