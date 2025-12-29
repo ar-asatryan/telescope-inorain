@@ -1,0 +1,10 @@
+export { Dashboard } from './Dashboard'
+export { Employees } from './Employees'
+export { EmployeeDetail } from './EmployeeDetail'
+export { Vacations } from './Vacations'
+export { Skills } from './Skills'
+export { Teams } from './Teams'
+export { Projects } from './Projects'
+export { Login } from './Login'
+export { Users } from './Users'
+
