@@ -6,8 +6,10 @@ import {
   Filter,
   MoreHorizontal,
   Mail,
-  Phone,
   Building2,
+  ArrowUpRight,
+  Grid3X3,
+  List,
 } from 'lucide-react'
 
 // Mock data
@@ -24,6 +26,8 @@ const employees = [
     status: 'active',
     avatar: 'AH',
     skills: ['React', 'TypeScript', 'Node.js'],
+    gradientFrom: '#00c3ff',
+    gradientTo: '#4f8fff',
   },
   {
     id: 2,
@@ -37,6 +41,8 @@ const employees = [
     status: 'active',
     avatar: 'TS',
     skills: ['Node.js', 'PostgreSQL', 'Docker'],
+    gradientFrom: '#8b5cf6',
+    gradientTo: '#a855f7',
   },
   {
     id: 3,
@@ -50,6 +56,8 @@ const employees = [
     status: 'vacation',
     avatar: 'MP',
     skills: ['Figma', 'Adobe XD', 'Prototyping'],
+    gradientFrom: '#ec4899',
+    gradientTo: '#f43f5e',
   },
   {
     id: 4,
@@ -63,6 +71,8 @@ const employees = [
     status: 'active',
     avatar: 'DG',
     skills: ['AWS', 'Kubernetes', 'Terraform'],
+    gradientFrom: '#10b981',
+    gradientTo: '#00c3ff',
   },
   {
     id: 5,
@@ -76,13 +86,39 @@ const employees = [
     status: 'active',
     avatar: 'LH',
     skills: ['Selenium', 'Cypress', 'Jest'],
+    gradientFrom: '#f59e0b',
+    gradientTo: '#f97316',
+  },
+  {
+    id: 6,
+    name: 'Armen Vardanyan',
+    email: 'armen.v@inorain.com',
+    phone: '+374 96 678901',
+    position: 'Tech Lead',
+    department: 'Engineering',
+    team: 'Platform',
+    englishLevel: 'C2',
+    status: 'active',
+    avatar: 'AV',
+    skills: ['React', 'Go', 'System Design'],
+    gradientFrom: '#00c3ff',
+    gradientTo: '#8b5cf6',
   },
 ]
 
-const statusColors = {
-  active: 'bg-emerald-500/20 text-emerald-400',
-  vacation: 'bg-amber-500/20 text-amber-400',
-  inactive: 'bg-zinc-500/20 text-zinc-400',
+const statusConfig = {
+  active: { 
+    dotColor: '#10b981',
+    label: 'Active' 
+  },
+  vacation: { 
+    dotColor: '#f59e0b',
+    label: 'Vacation' 
+  },
+  inactive: { 
+    dotColor: '#6b7280',
+    label: 'Inactive' 
+  },
 }
 
 export function Employees() {
@@ -101,8 +137,15 @@ export function Employees() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-white">Employees</h1>
-          <p className="text-zinc-500 mt-1">Manage your team members and their information</p>
+          <h1 
+            className="text-3xl font-display font-bold"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Employees
+          </h1>
+          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+            Manage your team members and their information
+          </p>
         </div>
         <button className="btn-primary">
           <Plus className="w-4 h-4" />
@@ -113,112 +156,195 @@ export function Employees() {
       {/* Filters and search */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search 
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
+            style={{ color: 'var(--color-text-muted)' }}
+          />
           <input
             type="text"
             placeholder="Search employees..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10"
+            className="input pl-11"
           />
         </div>
         <button className="btn-secondary">
           <Filter className="w-4 h-4" />
           Filters
         </button>
-        <div className="flex rounded-lg border border-zinc-700 overflow-hidden">
+        <div 
+          className="flex rounded-xl overflow-hidden"
+          style={{ border: '1px solid var(--color-border)' }}
+        >
           <button
             onClick={() => setView('grid')}
-            className={`px-3 py-2 text-sm ${
-              view === 'grid' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
-            } transition-colors`}
+            className="p-2.5 transition-all duration-300"
+            style={{
+              background: view === 'grid' ? 'color-mix(in srgb, var(--color-accent) 15%, transparent)' : 'transparent',
+              color: view === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)'
+            }}
           >
-            Grid
+            <Grid3X3 className="w-4 h-4" />
           </button>
           <button
             onClick={() => setView('list')}
-            className={`px-3 py-2 text-sm ${
-              view === 'list' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
-            } transition-colors`}
+            className="p-2.5 transition-all duration-300"
+            style={{
+              background: view === 'list' ? 'color-mix(in srgb, var(--color-accent) 15%, transparent)' : 'transparent',
+              color: view === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)'
+            }}
           >
-            List
+            <List className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Employee grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-        {filteredEmployees.map((employee) => (
-          <Link
-            key={employee.id}
-            to={`/employees/${employee.id}`}
-            className="card group hover:border-zinc-700 hover:bg-zinc-800/30 transition-all duration-300"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                  {employee.avatar}
-                </div>
-                <div>
-                  <h3 className="font-medium text-white group-hover:text-indigo-400 transition-colors">
-                    {employee.name}
-                  </h3>
-                  <p className="text-sm text-zinc-500">{employee.position}</p>
-                </div>
-              </div>
-              <button className="p-1 text-zinc-600 hover:text-white rounded transition-colors">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <Mail className="w-4 h-4" />
-                {employee.email}
-              </div>
-              <div className="flex items-center gap-2 text-zinc-400">
-                <Building2 className="w-4 h-4" />
-                {employee.department} · {employee.team}
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex gap-1">
-                {employee.skills.slice(0, 3).map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs rounded-md"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
+        {filteredEmployees.map((employee) => {
+          const status = statusConfig[employee.status as keyof typeof statusConfig]
+          return (
+            <Link
+              key={employee.id}
+              to={`/employees/${employee.id}`}
+              className="card group transition-all duration-300 relative overflow-hidden hover:scale-[1.02]"
+            >
+              {/* Top gradient line on hover */}
+              <div 
+                className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: `linear-gradient(90deg, ${employee.gradientFrom}, ${employee.gradientTo})` }}
+              />
+              
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold shadow-lg group-hover:scale-105 transition-transform duration-300"
+                    style={{ background: `linear-gradient(135deg, ${employee.gradientFrom}, ${employee.gradientTo})` }}
                   >
-                    {skill}
-                  </span>
-                ))}
+                    {employee.avatar}
+                  </div>
+                  <div>
+                    <h3 
+                      className="font-semibold transition-colors"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
+                      {employee.name}
+                    </h3>
+                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                      {employee.position}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={(e) => e.preventDefault()}
+                  className="p-1.5 rounded-lg transition-all"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
               </div>
-              <span
-                className={`px-2 py-1 text-xs font-medium rounded-md ${
-                  statusColors[employee.status as keyof typeof statusColors]
-                }`}
+
+              <div className="mt-4 space-y-2.5 text-sm">
+                <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                  <Mail className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                  {employee.email}
+                </div>
+                <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                  <Building2 className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                  {employee.department} · {employee.team}
+                </div>
+              </div>
+
+              <div 
+                className="mt-4 pt-4 flex items-center justify-between"
+                style={{ borderTop: '1px solid var(--color-border)' }}
               >
-                {employee.status}
-              </span>
-            </div>
-          </Link>
-        ))}
+                <div className="flex gap-1.5">
+                  {employee.skills.slice(0, 3).map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-2 py-1 text-xs font-medium rounded-md transition-colors"
+                      style={{ 
+                        background: 'var(--color-bg-hover)',
+                        color: 'var(--color-text-secondary)'
+                      }}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span 
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: status.dotColor }}
+                  />
+                  <span 
+                    className="text-xs font-medium"
+                    style={{ color: status.dotColor }}
+                  >
+                    {status.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Hover arrow */}
+              <ArrowUpRight 
+                className="absolute bottom-6 right-6 w-5 h-5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+                style={{ color: 'var(--color-accent)' }}
+              />
+            </Link>
+          )
+        })}
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-zinc-500">
-        <span>Showing {filteredEmployees.length} of {employees.length} employees</span>
+      <div 
+        className="flex items-center justify-between text-sm pt-4"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        <span>
+          Showing{' '}
+          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+            {filteredEmployees.length}
+          </span>{' '}
+          of{' '}
+          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+            {employees.length}
+          </span>{' '}
+          employees
+        </span>
         <div className="flex gap-2">
-          <button className="px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors">
+          <button 
+            className="px-4 py-2 rounded-lg transition-all duration-300"
+            style={{ 
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
             Previous
           </button>
-          <button className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">
+          <button 
+            className="px-4 py-2 rounded-lg text-white font-medium"
+            style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-inorain-blue))' }}
+          >
             1
           </button>
-          <button className="px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors">
+          <button 
+            className="px-4 py-2 rounded-lg transition-all duration-300"
+            style={{ 
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
             2
           </button>
-          <button className="px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors">
+          <button 
+            className="px-4 py-2 rounded-lg transition-all duration-300"
+            style={{ 
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
             Next
           </button>
         </div>
@@ -226,6 +352,3 @@ export function Employees() {
     </div>
   )
 }
-
-
-
