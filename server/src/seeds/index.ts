@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { AppDataSource } from '../config/database'
+import { AppDataSource } from '../config/data-source'
 import { User, UserRole } from '../entities/User'
 import { Department } from '../entities/Department'
 import { Team } from '../entities/Team'

@@ -1,16 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    <linearGradient id="inorain-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00c3ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4f8fff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00c3ff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
     </linearGradient>
   </defs>
-  <circle cx="50" cy="50" r="45" fill="#0a0a0f" stroke="url(#grad1)" stroke-width="2"/>
-  <path d="M30 65 L45 35 L55 35 L70 65" stroke="url(#grad1)" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <circle cx="50" cy="28" r="8" fill="url(#grad1)"/>
-  <path d="M38 70 L62 70" stroke="url(#grad1)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Background -->
+  <rect width="100" height="100" rx="20" fill="#0a0e14"/>
+  <!-- Glow effect -->
+  <circle cx="50" cy="45" r="30" fill="url(#glow-grad)" opacity="0.5"/>
+  <!-- Telescope body -->
+  <path d="M25 70 L40 35 L60 35 L75 70" stroke="url(#inorain-grad)" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Telescope lens -->
+  <circle cx="50" cy="28" r="10" stroke="url(#inorain-grad)" stroke-width="3" fill="none"/>
+  <circle cx="50" cy="28" r="5" fill="url(#inorain-grad)"/>
+  <!-- Telescope base -->
+  <path d="M35 75 L65 75" stroke="url(#inorain-grad)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Stars -->
+  <circle cx="20" cy="20" r="2" fill="#00c3ff" opacity="0.8"/>
+  <circle cx="80" cy="25" r="1.5" fill="#8b5cf6" opacity="0.8"/>
+  <circle cx="85" cy="50" r="1" fill="#4f8fff" opacity="0.6"/>
+  <circle cx="15" cy="45" r="1.5" fill="#00c3ff" opacity="0.6"/>
 </svg>
-
-
-

@@ -5,6 +5,7 @@ export { Vacations } from './Vacations'
 export { Skills } from './Skills'
 export { Teams } from './Teams'
 export { Projects } from './Projects'
+export { Settings } from './Settings'
 export { Login } from './Login'
 export { Users } from './Users'
 

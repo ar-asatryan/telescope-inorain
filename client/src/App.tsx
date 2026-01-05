@@ -7,6 +7,7 @@ import { Vacations } from './pages/Vacations'
 import { Skills } from './pages/Skills'
 import { Teams } from './pages/Teams'
 import { Projects } from './pages/Projects'
+import { Settings } from './pages/Settings'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="skills" element={<Skills />} />
         <Route path="teams" element={<Teams />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   )

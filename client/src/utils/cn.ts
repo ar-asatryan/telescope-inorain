@@ -1,8 +1,2 @@
-import { clsx, type ClassValue } from 'clsx'
-
-export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs)
-}
-
-
-
+// Re-export from lib/utils for backwards compatibility
+export { cn } from '@/lib/utils'
