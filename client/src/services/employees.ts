@@ -1,11 +1,21 @@
 import api from './api'
-import type { Employee, PaginatedResponse, EmployeeSkill, Vacation } from '../types'
+import type { 
+  Employee, 
+  PaginatedResponse, 
+  EmployeeSkill, 
+  Vacation, 
+  VacationBalance, 
+  TeamChainMember, 
+  ProjectAssignment,
+  EmployeeDetailedProfile 
+} from '../types'
 
 export interface EmployeeFilters {
   search?: string
   departmentId?: number
   teamId?: number
   status?: string
+  projectId?: number
   page?: number
   limit?: number
 }
@@ -18,6 +28,7 @@ export const employeeService = {
     if (filters?.departmentId) params.append('departmentId', String(filters.departmentId))
     if (filters?.teamId) params.append('teamId', String(filters.teamId))
     if (filters?.status) params.append('status', filters.status)
+    if (filters?.projectId) params.append('projectId', String(filters.projectId))
     if (filters?.page) params.append('page', String(filters.page))
     if (filters?.limit) params.append('limit', String(filters.limit))
 
@@ -37,6 +48,13 @@ export const employeeService = {
   async getById(id: number): Promise<Employee> {
     const response = await api.get(`/employees/${id}`)
     // Server returns { success, data: {...employee} }
+    return response.data.data
+  },
+
+  // Get detailed employee profile (all data in one request)
+  async getDetailedProfile(id: number): Promise<EmployeeDetailedProfile> {
+    const response = await api.get(`/employees/${id}/profile`)
+    // Server returns { success, data: { employee, skills, currentProjects, teamChain, vacationBalance } }
     return response.data.data
   },
 
@@ -68,6 +86,27 @@ export const employeeService = {
   async getVacations(id: number): Promise<Vacation[]> {
     const response = await api.get(`/employees/${id}/vacations`)
     // Server returns { success, data: [...vacations] }
+    return response.data.data || []
+  },
+
+  // Get employee current projects
+  async getCurrentProjects(id: number): Promise<ProjectAssignment[]> {
+    const response = await api.get(`/employees/${id}/projects`)
+    // Server returns { success, data: [...projects] }
+    return response.data.data || []
+  },
+
+  // Get employee vacation balance
+  async getVacationBalance(id: number): Promise<VacationBalance> {
+    const response = await api.get(`/employees/${id}/vacation-balance`)
+    // Server returns { success, data: {...balance} }
+    return response.data.data
+  },
+
+  // Get employee team chain
+  async getTeamChain(id: number): Promise<TeamChainMember[]> {
+    const response = await api.get(`/employees/${id}/team-chain`)
+    // Server returns { success, data: [...chain] }
     return response.data.data || []
   },
 }

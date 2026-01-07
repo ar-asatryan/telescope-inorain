@@ -167,6 +167,22 @@ export class Employee {
   status: EmployeeStatus;
 
   // ================================================
+  // VACATION BALANCE
+  // ================================================
+
+  /** Total annual vacation days allocated */
+  @Column({ type: 'int', default: 20 })
+  annualVacationDays: number;
+
+  /** Additional vacation days (bonus, rollover, etc.) */
+  @Column({ type: 'int', default: 0 })
+  bonusVacationDays: number;
+
+  /** Total sick leave days per year */
+  @Column({ type: 'int', default: 10 })
+  annualSickLeaveDays: number;
+
+  // ================================================
   // PROFILE
   // ================================================
 

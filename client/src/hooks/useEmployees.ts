@@ -11,7 +11,7 @@ interface UseEmployeesState {
   totalPages: number
 }
 
-export function useEmployees(initialFilters?: EmployeeFilters) {
+export function useEmployees(externalFilters?: EmployeeFilters) {
   const [state, setState] = useState<UseEmployeesState>({
     employees: [],
     loading: true,
@@ -21,12 +21,28 @@ export function useEmployees(initialFilters?: EmployeeFilters) {
     totalPages: 1,
   })
 
-  const [filters, setFilters] = useState<EmployeeFilters>(initialFilters || {})
+  // Internal page state for pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  // Create a stable key for external filters to detect changes
+  const filterKey = JSON.stringify({
+    search: externalFilters?.search,
+    departmentId: externalFilters?.departmentId,
+    teamId: externalFilters?.teamId,
+    status: externalFilters?.status,
+    projectId: externalFilters?.projectId,
+    limit: externalFilters?.limit,
+  })
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async (page: number) => {
     setState((prev) => ({ ...prev, loading: true, error: null }))
     try {
-      const response = await employeeService.getAll(filters)
+      const filtersToUse: EmployeeFilters = {
+        ...externalFilters,
+        page,
+      }
+      console.log('Fetching employees with filters:', JSON.stringify(filtersToUse)) // Debug log
+      const response = await employeeService.getAll(filtersToUse)
       setState({
         employees: response.data,
         loading: false,
@@ -42,23 +58,30 @@ export function useEmployees(initialFilters?: EmployeeFilters) {
         error: err instanceof Error ? err.message : 'Failed to fetch employees',
       }))
     }
-  }, [filters])
+  }, [externalFilters])
 
+  // Fetch when external filters change - reset to page 1
   useEffect(() => {
-    fetchEmployees()
-  }, [fetchEmployees])
+    console.log('Filter key changed:', filterKey) // Debug log
+    setCurrentPage(1)
+    fetchEmployees(1)
+  }, [filterKey])
 
+  // Update page handler
   const updateFilters = useCallback((newFilters: Partial<EmployeeFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }))
-  }, [])
+    if (newFilters.page !== undefined) {
+      setCurrentPage(newFilters.page)
+      fetchEmployees(newFilters.page)
+    }
+  }, [fetchEmployees])
 
   const refetch = useCallback(() => {
-    fetchEmployees()
-  }, [fetchEmployees])
+    fetchEmployees(currentPage)
+  }, [fetchEmployees, currentPage])
 
   return {
     ...state,
-    filters,
+    filters: { ...externalFilters, page: currentPage },
     updateFilters,
     refetch,
   }

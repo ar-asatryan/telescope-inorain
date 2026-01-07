@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Mail,
   Building2,
@@ -12,8 +11,10 @@ import {
   List,
   Loader2,
   AlertCircle,
+  X,
 } from 'lucide-react'
 import { useEmployees } from '@/hooks/useEmployees'
+import { EmployeeFilters, type FilterState } from '@/components/employees'
 import type { Employee } from '@/types'
 
 // Generate gradient colors based on employee name/id
@@ -54,23 +55,46 @@ export function Employees() {
   const [searchQuery, setSearchQuery] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [filters, setFilters] = useState<FilterState>({})
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log('Debounce complete, setting search to:', searchQuery) // Debug log
       setDebouncedSearch(searchQuery)
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  // Pass filters directly to the hook - it will refetch when they change
   const { employees, loading, error, total, page, totalPages, updateFilters } = useEmployees({
-    search: debouncedSearch,
+    search: debouncedSearch || undefined,
+    departmentId: filters.departmentId,
+    teamId: filters.teamId,
+    status: filters.status,
+    projectId: filters.projectId,
     limit: 12,
   })
 
   const handlePageChange = (newPage: number) => {
     updateFilters({ page: newPage })
   }
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters)
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+  }
+
+  // Count active filters (excluding search)
+  const activeFilterCount = [
+    filters.departmentId,
+    filters.teamId,
+    filters.status,
+    filters.projectId,
+  ].filter(Boolean).length
 
   if (error) {
     return (
@@ -116,16 +140,25 @@ export function Employees() {
           />
           <input
             type="text"
-            placeholder="Search employees..."
+            placeholder="Search employees by name, email, or position..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-11"
+            className="input pl-11 pr-10"
           />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors hover:bg-[var(--color-bg-hover)]"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-        <button className="btn-secondary">
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
+        <EmployeeFilters 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
         <div 
           className="flex rounded-xl overflow-hidden"
           style={{ border: '1px solid var(--color-border)' }}
@@ -153,6 +186,115 @@ export function Employees() {
         </div>
       </div>
 
+      {/* Active Filters Display */}
+      {(searchQuery || activeFilterCount > 0) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span 
+            className="text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Active filters:
+          </span>
+          {searchQuery && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Search: "{searchQuery}"
+              <button 
+                onClick={clearSearch}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.departmentId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Department
+              <button 
+                onClick={() => handleFilterChange({ ...filters, departmentId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.teamId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Team
+              <button 
+                onClick={() => handleFilterChange({ ...filters, teamId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.status && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Status: {filters.status}
+              <button 
+                onClick={() => handleFilterChange({ ...filters, status: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.projectId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Project
+              <button 
+                onClick={() => handleFilterChange({ ...filters, projectId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {(searchQuery || activeFilterCount > 0) && (
+            <button
+              onClick={() => {
+                clearSearch()
+                handleFilterChange({})
+              }}
+              className="text-sm px-2 py-1 transition-colors hover:underline"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-20">
@@ -175,9 +317,22 @@ export function Employees() {
           <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             No employees found
           </h2>
-          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            {searchQuery ? 'Try adjusting your search criteria' : 'Add your first employee to get started'}
+          <p className="mt-2 text-center max-w-md" style={{ color: 'var(--color-text-secondary)' }}>
+            {(searchQuery || activeFilterCount > 0) 
+              ? 'Try adjusting your search terms or removing some filters' 
+              : 'Add your first employee to get started'}
           </p>
+          {(searchQuery || activeFilterCount > 0) && (
+            <button
+              onClick={() => {
+                clearSearch()
+                handleFilterChange({})
+              }}
+              className="mt-4 btn-secondary"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       )}
 
