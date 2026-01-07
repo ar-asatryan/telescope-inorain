@@ -1,110 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Mail,
   Building2,
   ArrowUpRight,
   Grid3X3,
   List,
+  Loader2,
+  AlertCircle,
+  X,
 } from 'lucide-react'
+import { useEmployees } from '@/hooks/useEmployees'
+import { EmployeeFilters, type FilterState } from '@/components/employees'
+import type { Employee } from '@/types'
 
-// Mock data
-const employees = [
-  {
-    id: 1,
-    name: 'Anna Hovhannisyan',
-    email: 'anna.h@inorain.com',
-    phone: '+374 99 123456',
-    position: 'Senior Frontend Developer',
-    department: 'Engineering',
-    team: 'Platform',
-    englishLevel: 'C1',
-    status: 'active',
-    avatar: 'AH',
-    skills: ['React', 'TypeScript', 'Node.js'],
-    gradientFrom: '#00c3ff',
-    gradientTo: '#4f8fff',
-  },
-  {
-    id: 2,
-    name: 'Tigran Sargsyan',
-    email: 'tigran.s@inorain.com',
-    phone: '+374 91 234567',
-    position: 'Backend Developer',
-    department: 'Engineering',
-    team: 'API',
-    englishLevel: 'B2',
-    status: 'active',
-    avatar: 'TS',
-    skills: ['Node.js', 'PostgreSQL', 'Docker'],
-    gradientFrom: '#8b5cf6',
-    gradientTo: '#a855f7',
-  },
-  {
-    id: 3,
-    name: 'Maria Petrosyan',
-    email: 'maria.p@inorain.com',
-    phone: '+374 93 345678',
-    position: 'UI/UX Designer',
-    department: 'Design',
-    team: 'Product',
-    englishLevel: 'B2',
-    status: 'vacation',
-    avatar: 'MP',
-    skills: ['Figma', 'Adobe XD', 'Prototyping'],
-    gradientFrom: '#ec4899',
-    gradientTo: '#f43f5e',
-  },
-  {
-    id: 4,
-    name: 'David Grigoryan',
-    email: 'david.g@inorain.com',
-    phone: '+374 94 456789',
-    position: 'DevOps Engineer',
-    department: 'Engineering',
-    team: 'Infrastructure',
-    englishLevel: 'C1',
-    status: 'active',
-    avatar: 'DG',
-    skills: ['AWS', 'Kubernetes', 'Terraform'],
-    gradientFrom: '#10b981',
-    gradientTo: '#00c3ff',
-  },
-  {
-    id: 5,
-    name: 'Lusine Hakobyan',
-    email: 'lusine.h@inorain.com',
-    phone: '+374 95 567890',
-    position: 'QA Engineer',
-    department: 'Engineering',
-    team: 'Quality',
-    englishLevel: 'B1',
-    status: 'active',
-    avatar: 'LH',
-    skills: ['Selenium', 'Cypress', 'Jest'],
-    gradientFrom: '#f59e0b',
-    gradientTo: '#f97316',
-  },
-  {
-    id: 6,
-    name: 'Armen Vardanyan',
-    email: 'armen.v@inorain.com',
-    phone: '+374 96 678901',
-    position: 'Tech Lead',
-    department: 'Engineering',
-    team: 'Platform',
-    englishLevel: 'C2',
-    status: 'active',
-    avatar: 'AV',
-    skills: ['React', 'Go', 'System Design'],
-    gradientFrom: '#00c3ff',
-    gradientTo: '#8b5cf6',
-  },
-]
+// Generate gradient colors based on employee name/id
+const getGradientColors = (id: number) => {
+  const gradients = [
+    { from: '#00c3ff', to: '#4f8fff' },
+    { from: '#8b5cf6', to: '#a855f7' },
+    { from: '#ec4899', to: '#f43f5e' },
+    { from: '#10b981', to: '#00c3ff' },
+    { from: '#f59e0b', to: '#f97316' },
+    { from: '#00c3ff', to: '#8b5cf6' },
+    { from: '#06b6d4', to: '#3b82f6' },
+    { from: '#14b8a6', to: '#22c55e' },
+  ]
+  return gradients[id % gradients.length]
+}
+
+const getInitials = (firstName: string, lastName: string) => {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+}
 
 const statusConfig = {
   active: { 
@@ -124,13 +54,61 @@ const statusConfig = {
 export function Employees() {
   const [searchQuery, setSearchQuery] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [filters, setFilters] = useState<FilterState>({})
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log('Debounce complete, setting search to:', searchQuery) // Debug log
+      setDebouncedSearch(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Pass filters directly to the hook - it will refetch when they change
+  const { employees, loading, error, total, page, totalPages, updateFilters } = useEmployees({
+    search: debouncedSearch || undefined,
+    departmentId: filters.departmentId,
+    teamId: filters.teamId,
+    status: filters.status,
+    projectId: filters.projectId,
+    limit: 12,
+  })
+
+  const handlePageChange = (newPage: number) => {
+    updateFilters({ page: newPage })
+  }
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters)
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+  }
+
+  // Count active filters (excluding search)
+  const activeFilterCount = [
+    filters.departmentId,
+    filters.teamId,
+    filters.status,
+    filters.projectId,
+  ].filter(Boolean).length
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          Failed to load employees
+        </h2>
+        <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+          {error}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -162,16 +140,25 @@ export function Employees() {
           />
           <input
             type="text"
-            placeholder="Search employees..."
+            placeholder="Search employees by name, email, or position..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-11"
+            className="input pl-11 pr-10"
           />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors hover:bg-[var(--color-bg-hover)]"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-        <button className="btn-secondary">
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
+        <EmployeeFilters 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
         <div 
           className="flex rounded-xl overflow-hidden"
           style={{ border: '1px solid var(--color-border)' }}
@@ -199,156 +186,323 @@ export function Employees() {
         </div>
       </div>
 
-      {/* Employee grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
-        {filteredEmployees.map((employee) => {
-          const status = statusConfig[employee.status as keyof typeof statusConfig]
-          return (
-            <Link
-              key={employee.id}
-              to={`/employees/${employee.id}`}
-              className="card group transition-all duration-300 relative overflow-hidden hover:scale-[1.02]"
+      {/* Active Filters Display */}
+      {(searchQuery || activeFilterCount > 0) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span 
+            className="text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Active filters:
+          </span>
+          {searchQuery && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
             >
-              {/* Top gradient line on hover */}
-              <div 
-                className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: `linear-gradient(90deg, ${employee.gradientFrom}, ${employee.gradientTo})` }}
-              />
-              
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold shadow-lg group-hover:scale-105 transition-transform duration-300"
-                    style={{ background: `linear-gradient(135deg, ${employee.gradientFrom}, ${employee.gradientTo})` }}
-                  >
-                    {employee.avatar}
-                  </div>
-                  <div>
-                    <h3 
-                      className="font-semibold transition-colors"
-                      style={{ color: 'var(--color-text-primary)' }}
-                    >
-                      {employee.name}
-                    </h3>
-                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                      {employee.position}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={(e) => e.preventDefault()}
-                  className="p-1.5 rounded-lg transition-all"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-2.5 text-sm">
-                <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
-                  <Mail className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
-                  {employee.email}
-                </div>
-                <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
-                  <Building2 className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
-                  {employee.department} · {employee.team}
-                </div>
-              </div>
-
-              <div 
-                className="mt-4 pt-4 flex items-center justify-between"
-                style={{ borderTop: '1px solid var(--color-border)' }}
+              Search: "{searchQuery}"
+              <button 
+                onClick={clearSearch}
+                className="hover:opacity-70 transition-opacity"
               >
-                <div className="flex gap-1.5">
-                  {employee.skills.slice(0, 3).map((skill) => (
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.departmentId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Department
+              <button 
+                onClick={() => handleFilterChange({ ...filters, departmentId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.teamId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Team
+              <button 
+                onClick={() => handleFilterChange({ ...filters, teamId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.status && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Status: {filters.status}
+              <button 
+                onClick={() => handleFilterChange({ ...filters, status: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.projectId && (
+            <span 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg"
+              style={{ 
+                background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+                color: 'var(--color-accent)'
+              }}
+            >
+              Project
+              <button 
+                onClick={() => handleFilterChange({ ...filters, projectId: undefined })}
+                className="hover:opacity-70 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {(searchQuery || activeFilterCount > 0) && (
+            <button
+              onClick={() => {
+                clearSearch()
+                handleFilterChange({})
+              }}
+              className="text-sm px-2 py-1 transition-colors hover:underline"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Loading state */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-accent)' }} />
+          <span className="ml-3" style={{ color: 'var(--color-text-secondary)' }}>
+            Loading employees...
+          </span>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && employees.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div 
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: 'var(--color-bg-hover)' }}
+          >
+            <Search className="w-8 h-8" style={{ color: 'var(--color-text-muted)' }} />
+          </div>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+            No employees found
+          </h2>
+          <p className="mt-2 text-center max-w-md" style={{ color: 'var(--color-text-secondary)' }}>
+            {(searchQuery || activeFilterCount > 0) 
+              ? 'Try adjusting your search terms or removing some filters' 
+              : 'Add your first employee to get started'}
+          </p>
+          {(searchQuery || activeFilterCount > 0) && (
+            <button
+              onClick={() => {
+                clearSearch()
+                handleFilterChange({})
+              }}
+              className="mt-4 btn-secondary"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Employee grid */}
+      {!loading && employees.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
+          {employees.map((employee: Employee) => {
+            const status = statusConfig[employee.status as keyof typeof statusConfig] || statusConfig.active
+            const gradient = getGradientColors(employee.id)
+            const initials = getInitials(employee.firstName, employee.lastName)
+            
+            return (
+              <Link
+                key={employee.id}
+                to={`/employees/${employee.id}`}
+                className="card group transition-all duration-300 relative overflow-hidden hover:scale-[1.02]"
+              >
+                {/* Top gradient line on hover */}
+                <div 
+                  className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})` }}
+                />
+                
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold shadow-lg group-hover:scale-105 transition-transform duration-300"
+                      style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                    >
+                      {employee.avatarUrl ? (
+                        <img 
+                          src={employee.avatarUrl} 
+                          alt={`${employee.firstName} ${employee.lastName}`}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </div>
+                    <div>
+                      <h3 
+                        className="font-semibold transition-colors"
+                        style={{ color: 'var(--color-text-primary)' }}
+                      >
+                        {employee.firstName} {employee.lastName}
+                      </h3>
+                      <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        {employee.position}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={(e) => e.preventDefault()}
+                    className="p-1.5 rounded-lg transition-all"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-2.5 text-sm">
+                  <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    <Mail className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                    {employee.email}
+                  </div>
+                  <div className="flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    <Building2 className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                    {employee.position}
+                  </div>
+                </div>
+
+                <div 
+                  className="mt-4 pt-4 flex items-center justify-between"
+                  style={{ borderTop: '1px solid var(--color-border)' }}
+                >
+                  <div className="flex gap-1.5">
                     <span
-                      key={skill}
                       className="px-2 py-1 text-xs font-medium rounded-md transition-colors"
                       style={{ 
                         background: 'var(--color-bg-hover)',
                         color: 'var(--color-text-secondary)'
                       }}
                     >
-                      {skill}
+                      {employee.englishLevel}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span 
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: status.dotColor }}
+                    />
+                    <span 
+                      className="text-xs font-medium"
+                      style={{ color: status.dotColor }}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span 
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: status.dotColor }}
-                  />
-                  <span 
-                    className="text-xs font-medium"
-                    style={{ color: status.dotColor }}
-                  >
-                    {status.label}
-                  </span>
-                </div>
-              </div>
 
-              {/* Hover arrow */}
-              <ArrowUpRight 
-                className="absolute bottom-6 right-6 w-5 h-5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
-                style={{ color: 'var(--color-accent)' }}
-              />
-            </Link>
-          )
-        })}
-      </div>
+                {/* Hover arrow */}
+                <ArrowUpRight 
+                  className="absolute bottom-6 right-6 w-5 h-5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+                  style={{ color: 'var(--color-accent)' }}
+                />
+              </Link>
+            )
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
-      <div 
-        className="flex items-center justify-between text-sm pt-4"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        <span>
-          Showing{' '}
-          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
-            {filteredEmployees.length}
-          </span>{' '}
-          of{' '}
-          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
-            {employees.length}
-          </span>{' '}
-          employees
-        </span>
-        <div className="flex gap-2">
-          <button 
-            className="px-4 py-2 rounded-lg transition-all duration-300"
-            style={{ 
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-secondary)'
-            }}
-          >
-            Previous
-          </button>
-          <button 
-            className="px-4 py-2 rounded-lg text-white font-medium"
-            style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-inorain-blue))' }}
-          >
-            1
-          </button>
-          <button 
-            className="px-4 py-2 rounded-lg transition-all duration-300"
-            style={{ 
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-secondary)'
-            }}
-          >
-            2
-          </button>
-          <button 
-            className="px-4 py-2 rounded-lg transition-all duration-300"
-            style={{ 
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-secondary)'
-            }}
-          >
-            Next
-          </button>
+      {!loading && employees.length > 0 && (
+        <div 
+          className="flex items-center justify-between text-sm pt-4"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          <span>
+            Showing{' '}
+            <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+              {employees.length}
+            </span>{' '}
+            of{' '}
+            <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+              {total}
+            </span>{' '}
+            employees
+          </span>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-secondary)'
+              }}
+            >
+              Previous
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((pageNum) => (
+              <button 
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
+                className="px-4 py-2 rounded-lg font-medium transition-all duration-300"
+                style={page === pageNum ? {
+                  background: 'linear-gradient(90deg, var(--color-accent), var(--color-inorain-blue))',
+                  color: 'white'
+                } : { 
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)'
+                }}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button 
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="px-4 py-2 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-secondary)'
+              }}
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

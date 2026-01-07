@@ -138,5 +138,41 @@ export class EmployeesController {
   async getVacations(@Param('id', ParseIntPipe) id: number) {
     return this.employeesService.getVacations(id);
   }
+
+  // Current projects endpoint
+  @Get(':id/projects')
+  @ApiOperation({ summary: 'Get employee current project assignments' })
+  @ApiParam({ name: 'id', type: 'number' })
+  @ApiResponse({ status: 200, description: 'Employee current projects' })
+  async getCurrentProjects(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.getCurrentProjects(id);
+  }
+
+  // Vacation balance endpoint
+  @Get(':id/vacation-balance')
+  @ApiOperation({ summary: 'Get employee vacation balance' })
+  @ApiParam({ name: 'id', type: 'number' })
+  @ApiResponse({ status: 200, description: 'Employee vacation balance' })
+  async getVacationBalance(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.calculateVacationBalance(id);
+  }
+
+  // Team chain endpoint
+  @Get(':id/team-chain')
+  @ApiOperation({ summary: 'Get employee team chain (reporting hierarchy)' })
+  @ApiParam({ name: 'id', type: 'number' })
+  @ApiResponse({ status: 200, description: 'Employee team chain' })
+  async getTeamChain(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.getTeamChain(id);
+  }
+
+  // Detailed profile endpoint (all data in one request)
+  @Get(':id/profile')
+  @ApiOperation({ summary: 'Get comprehensive employee profile with all related data' })
+  @ApiParam({ name: 'id', type: 'number' })
+  @ApiResponse({ status: 200, description: 'Detailed employee profile' })
+  async getDetailedProfile(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.getDetailedProfile(id);
+  }
 }
 

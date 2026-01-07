@@ -13,12 +13,52 @@ export interface Employee {
   hireDate: string
   status: EmployeeStatus
   avatarUrl?: string
+  // Vacation balance fields
+  annualVacationDays: number
+  bonusVacationDays: number
+  annualSickLeaveDays: number
+  // Relations
+  department?: Department
+  team?: Team
+  manager?: Employee
   createdAt: string
   updatedAt: string
 }
 
 export type EmployeeStatus = 'active' | 'vacation' | 'inactive'
 export type EnglishLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+
+// Vacation Balance
+export interface VacationBalance {
+  annualVacationDays: number
+  bonusVacationDays: number
+  totalVacationDays: number
+  usedVacationDays: number
+  remainingVacationDays: number
+  pendingVacationDays: number
+  annualSickLeaveDays: number
+  usedSickLeaveDays: number
+  remainingSickLeaveDays: number
+}
+
+// Team Chain
+export interface TeamChainMember {
+  id: number
+  firstName: string
+  lastName: string
+  position: string
+  role: 'employee' | 'team_lead' | 'manager' | 'department_head'
+  avatarUrl?: string
+}
+
+// Detailed Employee Profile
+export interface EmployeeDetailedProfile {
+  employee: Employee
+  skills: EmployeeSkill[]
+  currentProjects: ProjectAssignment[]
+  teamChain: TeamChainMember[]
+  vacationBalance: VacationBalance
+}
 
 // Skill types
 export interface Skill {
@@ -86,13 +126,20 @@ export interface Project {
   name: string
   description?: string
   status: ProjectStatus
+  priority: ProjectPriority
   startDate: string
   endDate?: string
+  progress: number
+  category?: string
+  b2bClient?: string
+  clickupFolderId?: string
+  assignments?: ProjectAssignment[]
   createdAt: string
   updatedAt: string
 }
 
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+export type ProjectPriority = 'low' | 'medium' | 'high'
 
 export interface ProjectAssignment {
   id: number
@@ -101,6 +148,7 @@ export interface ProjectAssignment {
   role: string
   startDate: string
   endDate?: string
+  isActive: boolean
   project?: Project
   employee?: Employee
 }

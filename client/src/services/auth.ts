@@ -8,16 +8,23 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   success: boolean
-  message: string
   data: {
+    message: string
     user: User
-    token: string
+    tokens: {
+      accessToken: string
+      refreshToken: string
+    }
   }
 }
 
 export interface MeResponse {
-  success: boolean
-  data: User
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+  isActive: boolean
 }
 
 export const authService = {

@@ -25,7 +25,8 @@
     "db:drop": "npm run typeorm -- schema:drop -d src/database/data-source.ts",
     "db:sync": "npm run typeorm -- schema:sync -d src/database/data-source.ts",
     "db:reset": "npm run db:drop && npm run migration:run",
-    "seed": "ts-node src/database/seeds/run-seed.ts"
+    "seed": "ts-node src/database/seeds/run-seed.ts",
+    "seed:employees": "ts-node src/database/seeds/seed-employees-from-csv.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -40,6 +41,7 @@
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "csv-parse": "^5.6.0",
     "helmet": "^8.0.0",
     "nest-winston": "^1.9.4",
     "passport": "^0.7.0",

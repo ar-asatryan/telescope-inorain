@@ -5,6 +5,7 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
+  IsInt,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../../database/entities/user.entity';
@@ -47,10 +48,18 @@ export class CreateUserDto {
   @ApiPropertyOptional({
     enum: UserRole,
     default: UserRole.EMPLOYEE,
-    description: 'User role',
+    description: 'User role for authorization',
   })
   @IsOptional()
   @IsEnum(UserRole, { message: 'Invalid role' })
   role?: UserRole;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Link to associated employee record (optional)',
+  })
+  @IsOptional()
+  @IsInt()
+  employeeId?: number;
 }
 

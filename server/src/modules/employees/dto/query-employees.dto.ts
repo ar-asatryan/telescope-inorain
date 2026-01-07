@@ -26,5 +26,11 @@ export class QueryEmployeesDto extends PaginationDto {
   @IsOptional()
   @IsEnum(EmployeeStatus)
   status?: EmployeeStatus;
+
+  @ApiPropertyOptional({ description: 'Filter by project ID (employees assigned to this project)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  projectId?: number;
 }
 

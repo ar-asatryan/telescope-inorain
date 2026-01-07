@@ -4,15 +4,46 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Employee } from '../../database/entities/employee.entity';
 import { EmployeeSkill } from '../../database/entities/employee-skill.entity';
-import { Vacation } from '../../database/entities/vacation.entity';
+import { Vacation, VacationStatus, VacationType } from '../../database/entities/vacation.entity';
+import { ProjectAssignment } from '../../database/entities/project-assignment.entity';
+import { Team } from '../../database/entities/team.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { QueryEmployeesDto } from './dto/query-employees.dto';
 import { AddSkillDto } from './dto/add-skill.dto';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+
+export interface VacationBalance {
+  annualVacationDays: number;
+  bonusVacationDays: number;
+  totalVacationDays: number;
+  usedVacationDays: number;
+  remainingVacationDays: number;
+  pendingVacationDays: number;
+  annualSickLeaveDays: number;
+  usedSickLeaveDays: number;
+  remainingSickLeaveDays: number;
+}
+
+export interface TeamChainMember {
+  id: number;
+  firstName: string;
+  lastName: string;
+  position: string;
+  role: 'employee' | 'team_lead' | 'manager' | 'department_head';
+  avatarUrl?: string;
+}
+
+export interface EmployeeDetailedProfile {
+  employee: Employee;
+  skills: EmployeeSkill[];
+  currentProjects: ProjectAssignment[];
+  teamChain: TeamChainMember[];
+  vacationBalance: VacationBalance;
+}
 
 @Injectable()
 export class EmployeesService {
@@ -23,6 +54,10 @@ export class EmployeesService {
     private readonly employeeSkillRepository: Repository<EmployeeSkill>,
     @InjectRepository(Vacation)
     private readonly vacationRepository: Repository<Vacation>,
+    @InjectRepository(ProjectAssignment)
+    private readonly projectAssignmentRepository: Repository<ProjectAssignment>,
+    @InjectRepository(Team)
+    private readonly teamRepository: Repository<Team>,
   ) {}
 
   /**
@@ -30,7 +65,7 @@ export class EmployeesService {
    * Uses query builder for better control and performance
    */
   async findAll(query: QueryEmployeesDto): Promise<PaginatedResult<Employee>> {
-    const { page = 1, limit = 10, search, departmentId, teamId, status } = query;
+    const { page = 1, limit = 10, search, departmentId, teamId, status, projectId } = query;
     const skip = (page - 1) * limit;
 
     // Build optimized query with selective joins
@@ -68,6 +103,17 @@ export class EmployeesService {
 
     if (status) {
       queryBuilder.andWhere('employee.status = :status', { status });
+    }
+
+    if (projectId) {
+      // Filter employees assigned to a specific project
+      queryBuilder.andWhere(
+        `employee.id IN (
+          SELECT pa."employeeId" FROM project_assignments pa 
+          WHERE pa."projectId" = :projectId AND pa."isActive" = true
+        )`,
+        { projectId }
+      );
     }
 
     // Get paginated results with count
@@ -228,6 +274,219 @@ export class EmployeesService {
       where: { employeeId },
       order: { startDate: 'DESC' },
     });
+  }
+
+  /**
+   * Get employee's current active project assignments
+   */
+  async getCurrentProjects(employeeId: number): Promise<ProjectAssignment[]> {
+    return this.projectAssignmentRepository
+      .createQueryBuilder('pa')
+      .leftJoinAndSelect('pa.project', 'project')
+      .where('pa.employeeId = :employeeId', { employeeId })
+      .andWhere('pa.isActive = :isActive', { isActive: true })
+      .orderBy('pa.startDate', 'DESC')
+      .getMany();
+  }
+
+  /**
+   * Calculate vacation balance for an employee
+   * Takes into account approved vacations in current year
+   */
+  async calculateVacationBalance(employeeId: number): Promise<VacationBalance> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: employeeId },
+      select: ['id', 'annualVacationDays', 'bonusVacationDays', 'annualSickLeaveDays'],
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    }
+
+    // Get current year boundaries
+    const currentYear = new Date().getFullYear();
+    const yearStart = new Date(currentYear, 0, 1);
+    const yearEnd = new Date(currentYear, 11, 31);
+
+    // Get all vacations for current year
+    const vacations = await this.vacationRepository
+      .createQueryBuilder('v')
+      .where('v.employeeId = :employeeId', { employeeId })
+      .andWhere('v.startDate >= :yearStart', { yearStart })
+      .andWhere('v.endDate <= :yearEnd', { yearEnd })
+      .getMany();
+
+    // Calculate used vacation days (approved)
+    let usedVacationDays = 0;
+    let pendingVacationDays = 0;
+    let usedSickLeaveDays = 0;
+
+    for (const vacation of vacations) {
+      const days = this.calculateWorkingDays(vacation.startDate, vacation.endDate);
+
+      if (vacation.type === VacationType.VACATION || vacation.type === VacationType.DAY_OFF) {
+        if (vacation.status === VacationStatus.APPROVED) {
+          usedVacationDays += days;
+        } else if (vacation.status === VacationStatus.PENDING) {
+          pendingVacationDays += days;
+        }
+      } else if (vacation.type === VacationType.SICK_LEAVE) {
+        if (vacation.status === VacationStatus.APPROVED) {
+          usedSickLeaveDays += days;
+        }
+      }
+    }
+
+    const totalVacationDays = employee.annualVacationDays + employee.bonusVacationDays;
+
+    return {
+      annualVacationDays: employee.annualVacationDays,
+      bonusVacationDays: employee.bonusVacationDays,
+      totalVacationDays,
+      usedVacationDays,
+      remainingVacationDays: totalVacationDays - usedVacationDays,
+      pendingVacationDays,
+      annualSickLeaveDays: employee.annualSickLeaveDays,
+      usedSickLeaveDays,
+      remainingSickLeaveDays: employee.annualSickLeaveDays - usedSickLeaveDays,
+    };
+  }
+
+  /**
+   * Calculate working days between two dates (excludes weekends)
+   */
+  private calculateWorkingDays(startDate: Date, endDate: Date): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let count = 0;
+    const current = new Date(start);
+
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+      // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return count;
+  }
+
+  /**
+   * Get team chain for an employee
+   * Returns: Employee → Team Lead → Manager → Department Head
+   */
+  async getTeamChain(employeeId: number): Promise<TeamChainMember[]> {
+    const chain: TeamChainMember[] = [];
+    const visitedIds = new Set<number>();
+
+    // Get the employee with team and manager info
+    const employee = await this.employeeRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.team', 'team')
+      .leftJoinAndSelect('team.lead', 'teamLead')
+      .leftJoinAndSelect('team.department', 'department')
+      .leftJoinAndSelect('department.head', 'departmentHead')
+      .leftJoinAndSelect('e.manager', 'manager')
+      .where('e.id = :employeeId', { employeeId })
+      .getOne();
+
+    if (!employee) {
+      return chain;
+    }
+
+    // Add the employee themselves
+    chain.push({
+      id: employee.id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      position: employee.position,
+      role: 'employee',
+      avatarUrl: employee.avatarUrl,
+    });
+    visitedIds.add(employee.id);
+
+    // Recursively traverse up the manager chain
+    let currentManagerId = employee.managerId;
+    while (currentManagerId && !visitedIds.has(currentManagerId)) {
+      const manager = await this.employeeRepository.findOne({
+        where: { id: currentManagerId },
+        select: ['id', 'firstName', 'lastName', 'position', 'managerId', 'avatarUrl'],
+      });
+
+      if (!manager) break;
+
+      // Determine role based on position or order in hierarchy
+      let role: 'manager' | 'team_lead' | 'department_head' = 'manager';
+      const posLower = manager.position?.toLowerCase() || '';
+      if (posLower.includes('department head') || posLower.includes('director')) {
+        role = 'department_head';
+      } else if (posLower.includes('team lead') || posLower.includes('lead')) {
+        role = 'team_lead';
+      }
+
+      chain.push({
+        id: manager.id,
+        firstName: manager.firstName,
+        lastName: manager.lastName,
+        position: manager.position,
+        role,
+        avatarUrl: manager.avatarUrl,
+      });
+
+      visitedIds.add(manager.id);
+      currentManagerId = manager.managerId;
+    }
+
+    // Also check team lead if not already in chain
+    if (employee.team?.lead && !visitedIds.has(employee.team.lead.id)) {
+      chain.push({
+        id: employee.team.lead.id,
+        firstName: employee.team.lead.firstName,
+        lastName: employee.team.lead.lastName,
+        position: employee.team.lead.position,
+        role: 'team_lead',
+        avatarUrl: employee.team.lead.avatarUrl,
+      });
+      visitedIds.add(employee.team.lead.id);
+    }
+
+    // Add department head if exists and is different from others
+    if (employee.team?.department?.head && !visitedIds.has(employee.team.department.head.id)) {
+      const deptHead = employee.team.department.head;
+      chain.push({
+        id: deptHead.id,
+        firstName: deptHead.firstName,
+        lastName: deptHead.lastName,
+        position: deptHead.position,
+        role: 'department_head',
+        avatarUrl: deptHead.avatarUrl,
+      });
+    }
+
+    return chain;
+  }
+
+  /**
+   * Get comprehensive employee profile with all related data
+   */
+  async getDetailedProfile(employeeId: number): Promise<EmployeeDetailedProfile> {
+    const [employee, skills, currentProjects, vacationBalance, teamChain] = await Promise.all([
+      this.findOne(employeeId),
+      this.getSkills(employeeId),
+      this.getCurrentProjects(employeeId),
+      this.calculateVacationBalance(employeeId),
+      this.getTeamChain(employeeId),
+    ]);
+
+    return {
+      employee,
+      skills,
+      currentProjects,
+      teamChain,
+      vacationBalance,
+    };
   }
 }
 

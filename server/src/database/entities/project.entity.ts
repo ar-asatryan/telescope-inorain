@@ -59,6 +59,12 @@ export class Project {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   progress: number;
 
+  @Column({ nullable: true })
+  category: string;
+
+  @Column({ nullable: true })
+  b2bClient: string;
+
   @OneToMany(() => ProjectAssignment, (assignment) => assignment.project, {
     cascade: true,
   })

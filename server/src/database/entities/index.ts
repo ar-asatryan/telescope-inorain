@@ -2,7 +2,13 @@
 export { User, UserRole } from './user.entity';
 
 // Employee
-export { Employee, EmployeeStatus, EnglishLevel } from './employee.entity';
+export {
+  Employee,
+  EmployeeStatus,
+  EnglishLevel,
+  EmploymentType,
+  WorkLocation,
+} from './employee.entity';
 
 // Organization
 export { Department } from './department.entity';

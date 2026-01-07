@@ -1,11 +1,21 @@
 import api from './api'
-import type { Employee, PaginatedResponse, EmployeeSkill, Vacation } from '../types'
+import type { 
+  Employee, 
+  PaginatedResponse, 
+  EmployeeSkill, 
+  Vacation, 
+  VacationBalance, 
+  TeamChainMember, 
+  ProjectAssignment,
+  EmployeeDetailedProfile 
+} from '../types'
 
 export interface EmployeeFilters {
   search?: string
   departmentId?: number
   teamId?: number
   status?: string
+  projectId?: number
   page?: number
   limit?: number
 }
@@ -18,29 +28,46 @@ export const employeeService = {
     if (filters?.departmentId) params.append('departmentId', String(filters.departmentId))
     if (filters?.teamId) params.append('teamId', String(filters.teamId))
     if (filters?.status) params.append('status', filters.status)
+    if (filters?.projectId) params.append('projectId', String(filters.projectId))
     if (filters?.page) params.append('page', String(filters.page))
     if (filters?.limit) params.append('limit', String(filters.limit))
 
     const response = await api.get(`/employees?${params.toString()}`)
-    return response.data
+    // Server returns { success, data: [...], meta: { total, page, limit, totalPages } }
+    const { data, meta } = response.data
+    return {
+      data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    }
   },
 
   // Get single employee by ID
   async getById(id: number): Promise<Employee> {
     const response = await api.get(`/employees/${id}`)
-    return response.data
+    // Server returns { success, data: {...employee} }
+    return response.data.data
+  },
+
+  // Get detailed employee profile (all data in one request)
+  async getDetailedProfile(id: number): Promise<EmployeeDetailedProfile> {
+    const response = await api.get(`/employees/${id}/profile`)
+    // Server returns { success, data: { employee, skills, currentProjects, teamChain, vacationBalance } }
+    return response.data.data
   },
 
   // Create new employee
   async create(data: Partial<Employee>): Promise<Employee> {
     const response = await api.post('/employees', data)
-    return response.data
+    return response.data.data
   },
 
   // Update employee
   async update(id: number, data: Partial<Employee>): Promise<Employee> {
     const response = await api.put(`/employees/${id}`, data)
-    return response.data
+    return response.data.data
   },
 
   // Delete employee
@@ -51,13 +78,36 @@ export const employeeService = {
   // Get employee skills
   async getSkills(id: number): Promise<EmployeeSkill[]> {
     const response = await api.get(`/employees/${id}/skills`)
-    return response.data
+    // Server returns { success, data: [...skills] }
+    return response.data.data || []
   },
 
   // Get employee vacations
   async getVacations(id: number): Promise<Vacation[]> {
     const response = await api.get(`/employees/${id}/vacations`)
-    return response.data
+    // Server returns { success, data: [...vacations] }
+    return response.data.data || []
+  },
+
+  // Get employee current projects
+  async getCurrentProjects(id: number): Promise<ProjectAssignment[]> {
+    const response = await api.get(`/employees/${id}/projects`)
+    // Server returns { success, data: [...projects] }
+    return response.data.data || []
+  },
+
+  // Get employee vacation balance
+  async getVacationBalance(id: number): Promise<VacationBalance> {
+    const response = await api.get(`/employees/${id}/vacation-balance`)
+    // Server returns { success, data: {...balance} }
+    return response.data.data
+  },
+
+  // Get employee team chain
+  async getTeamChain(id: number): Promise<TeamChainMember[]> {
+    const response = await api.get(`/employees/${id}/team-chain`)
+    // Server returns { success, data: [...chain] }
+    return response.data.data || []
   },
 }
 
