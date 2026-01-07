@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   JoinColumn,
   Index,
 } from 'typeorm';
@@ -14,6 +16,7 @@ import { Team } from './team.entity';
 import { EmployeeSkill } from './employee-skill.entity';
 import { Vacation } from './vacation.entity';
 import { ProjectAssignment } from './project-assignment.entity';
+import { User } from './user.entity';
 
 export enum EmployeeStatus {
   ACTIVE = 'active',
@@ -30,14 +33,34 @@ export enum EnglishLevel {
   C2 = 'C2',
 }
 
+export enum EmploymentType {
+  FULL_TIME = 'full_time',
+  PART_TIME = 'part_time',
+  CONTRACTOR = 'contractor',
+  INTERN = 'intern',
+}
+
+export enum WorkLocation {
+  REMOTE = 'remote',
+  OFFICE = 'office',
+  HYBRID = 'hybrid',
+}
+
 @Entity('employees')
 @Index(['email'], { unique: true })
 @Index(['status'])
 @Index(['departmentId'])
 @Index(['teamId'])
+@Index(['employmentType'])
+@Index(['workLocation'])
+@Index(['deletedAt'])
 export class Employee {
   @PrimaryGeneratedColumn()
   id: number;
+
+  // ================================================
+  // PERSONAL INFO
+  // ================================================
 
   @Column()
   firstName: string;
@@ -48,11 +71,45 @@ export class Employee {
   @Column({ unique: true })
   email: string;
 
+  /** Personal email - for contact after they leave */
+  @Column({ nullable: true })
+  personalEmail: string;
+
   @Column({ nullable: true })
   phone: string;
 
+  /** Birth date - optional, for HR compliance */
+  @Column({ type: 'date', nullable: true })
+  birthDate: Date | null;
+
+  // ================================================
+  // WORK INFO
+  // ================================================
+
   @Column()
   position: string;
+
+  @Column({
+    type: 'enum',
+    enum: EmploymentType,
+    default: EmploymentType.FULL_TIME,
+  })
+  employmentType: EmploymentType;
+
+  @Column({
+    type: 'enum',
+    enum: WorkLocation,
+    default: WorkLocation.OFFICE,
+  })
+  workLocation: WorkLocation;
+
+  /** Timezone for distributed teams - e.g., 'America/New_York' */
+  @Column({ default: 'UTC' })
+  timezone: string;
+
+  // ================================================
+  // ORGANIZATION
+  // ================================================
 
   @Column({ nullable: true })
   departmentId: number;
@@ -84,6 +141,10 @@ export class Employee {
   @JoinColumn({ name: 'managerId' })
   manager: Employee;
 
+  // ================================================
+  // HR DATA
+  // ================================================
+
   @Column({
     type: 'enum',
     enum: EnglishLevel,
@@ -94,6 +155,10 @@ export class Employee {
   @Column({ type: 'date' })
   hireDate: Date;
 
+  /** Date when employee left the company */
+  @Column({ type: 'date', nullable: true })
+  terminationDate: Date | null;
+
   @Column({
     type: 'enum',
     enum: EmployeeStatus,
@@ -101,11 +166,23 @@ export class Employee {
   })
   status: EmployeeStatus;
 
+  // ================================================
+  // PROFILE
+  // ================================================
+
   @Column({ nullable: true })
   avatarUrl: string;
 
   @Column({ nullable: true, type: 'text' })
   bio: string;
+
+  // ================================================
+  // RELATIONS
+  // ================================================
+
+  /** Bidirectional relation to User (authentication account) */
+  @OneToOne(() => User, (user) => user.employee, { nullable: true })
+  user: User;
 
   @OneToMany(() => EmployeeSkill, (employeeSkill) => employeeSkill.employee, {
     cascade: true,
@@ -122,15 +199,31 @@ export class Employee {
   })
   projectAssignments: ProjectAssignment[];
 
+  // ================================================
+  // AUDIT FIELDS
+  // ================================================
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Virtual property
+  /** Soft delete timestamp */
+  @DeleteDateColumn()
+  deletedAt: Date | null;
+
+  // ================================================
+  // VIRTUAL PROPERTIES
+  // ================================================
+
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;
+  }
+
+  /** Check if employee is currently active */
+  isCurrentlyEmployed(): boolean {
+    return this.status === EmployeeStatus.ACTIVE && !this.terminationDate;
   }
 }
 

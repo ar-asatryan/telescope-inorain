@@ -22,25 +22,34 @@ export const employeeService = {
     if (filters?.limit) params.append('limit', String(filters.limit))
 
     const response = await api.get(`/employees?${params.toString()}`)
-    return response.data
+    // Server returns { success, data: [...], meta: { total, page, limit, totalPages } }
+    const { data, meta } = response.data
+    return {
+      data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    }
   },
 
   // Get single employee by ID
   async getById(id: number): Promise<Employee> {
     const response = await api.get(`/employees/${id}`)
-    return response.data
+    // Server returns { success, data: {...employee} }
+    return response.data.data
   },
 
   // Create new employee
   async create(data: Partial<Employee>): Promise<Employee> {
     const response = await api.post('/employees', data)
-    return response.data
+    return response.data.data
   },
 
   // Update employee
   async update(id: number, data: Partial<Employee>): Promise<Employee> {
     const response = await api.put(`/employees/${id}`, data)
-    return response.data
+    return response.data.data
   },
 
   // Delete employee
@@ -51,13 +60,15 @@ export const employeeService = {
   // Get employee skills
   async getSkills(id: number): Promise<EmployeeSkill[]> {
     const response = await api.get(`/employees/${id}/skills`)
-    return response.data
+    // Server returns { success, data: [...skills] }
+    return response.data.data || []
   },
 
   // Get employee vacations
   async getVacations(id: number): Promise<Vacation[]> {
     const response = await api.get(`/employees/${id}/vacations`)
-    return response.data
+    // Server returns { success, data: [...vacations] }
+    return response.data.data || []
   },
 }
 

@@ -28,13 +28,8 @@ export function Login() {
 
     try {
       const response = await authService.login({ email, password })
-      
-      if (response.success) {
-        setAuth(response.data.user, response.data.token)
-        navigate(from, { replace: true })
-      } else {
-        setError(response.message || 'Login failed')
-      }
+      setAuth(response.data.user, response.data.tokens.accessToken)
+      navigate(from, { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid email or password')
     } finally {

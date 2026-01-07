@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsEnum,
   IsBoolean,
+  IsInt,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../../database/entities/user.entity';
@@ -35,7 +36,7 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     enum: UserRole,
-    description: 'User role',
+    description: 'User role for authorization',
   })
   @IsOptional()
   @IsEnum(UserRole, { message: 'Invalid role' })
@@ -48,5 +49,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Link to associated employee record',
+  })
+  @IsOptional()
+  @IsInt()
+  employeeId?: number;
 }
 

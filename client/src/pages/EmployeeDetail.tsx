@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -8,52 +9,121 @@ import {
   Globe2,
   Edit2,
   Clock,
+  Loader2,
+  AlertCircle,
+  MapPin,
+  Briefcase,
 } from 'lucide-react'
-
-// Mock employee data
-const employeeData = {
-  id: 1,
-  firstName: 'Anna',
-  lastName: 'Hovhannisyan',
-  email: 'anna.h@inorain.com',
-  phone: '+374 99 123456',
-  position: 'Senior Frontend Developer',
-  department: 'Engineering',
-  team: 'Platform',
-  englishLevel: 'C1',
-  status: 'active',
-  hireDate: '2022-03-15',
-  avatar: 'AH',
-  manager: 'Armen Vardanyan',
-  skills: [
-    { name: 'React', level: 5, years: 4 },
-    { name: 'TypeScript', level: 4, years: 3 },
-    { name: 'Node.js', level: 3, years: 2 },
-    { name: 'GraphQL', level: 3, years: 2 },
-    { name: 'TailwindCSS', level: 5, years: 3 },
-  ],
-  projects: [
-    { id: 1, name: 'Platform Redesign', role: 'Lead Developer', status: 'active' },
-    { id: 2, name: 'Mobile App', role: 'Contributor', status: 'active' },
-  ],
-  vacationBalance: {
-    total: 20,
-    used: 8,
-    remaining: 12,
-  },
-}
+import { employeeService } from '@/services/employees'
+import type { Employee, EmployeeSkill } from '@/types'
 
 const levelLabels = ['', 'Beginner', 'Elementary', 'Intermediate', 'Advanced', 'Expert']
 
+// Generate gradient colors based on employee id
+const getGradientColors = (id: number) => {
+  const gradients = [
+    { from: '#00c3ff', to: '#4f8fff' },
+    { from: '#8b5cf6', to: '#a855f7' },
+    { from: '#ec4899', to: '#f43f5e' },
+    { from: '#10b981', to: '#00c3ff' },
+    { from: '#f59e0b', to: '#f97316' },
+    { from: '#00c3ff', to: '#8b5cf6' },
+  ]
+  return gradients[id % gradients.length]
+}
+
+const getInitials = (firstName: string, lastName: string) => {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+}
+
+const statusConfig = {
+  active: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Active' },
+  vacation: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'On Vacation' },
+  inactive: { bg: 'bg-zinc-500/20', text: 'text-zinc-400', label: 'Inactive' },
+}
+
 export function EmployeeDetail() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const [employee, setEmployee] = useState<Employee | null>(null)
+  const [skills, setSkills] = useState<EmployeeSkill[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchEmployee() {
+      if (!id) return
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const employeeData = await employeeService.getById(parseInt(id))
+        setEmployee(employeeData)
+
+        // Try to fetch skills (may fail if not implemented)
+        try {
+          const skillsData = await employeeService.getSkills(parseInt(id))
+          setSkills(skillsData)
+        } catch {
+          // Skills endpoint might not be available
+          setSkills([])
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load employee')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEmployee()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-accent)' }} />
+        <span className="ml-3" style={{ color: 'var(--color-text-secondary)' }}>
+          Loading employee...
+        </span>
+      </div>
+    )
+  }
+
+  if (error || !employee) {
+    return (
+      <div className="space-y-6">
+        <Link
+          to="/employees"
+          className="inline-flex items-center gap-2 text-sm transition-colors"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Employees
+        </Link>
+        <div className="flex flex-col items-center justify-center py-20">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+            Failed to load employee
+          </h2>
+          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+            {error || 'Employee not found'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const status = statusConfig[employee.status as keyof typeof statusConfig] || statusConfig.active
+  const gradient = getGradientColors(employee.id)
+  const initials = getInitials(employee.firstName, employee.lastName)
 
   return (
     <div className="space-y-6">
       {/* Back button */}
       <Link
         to="/employees"
-        className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 text-sm transition-colors hover:opacity-80"
+        style={{ color: 'var(--color-text-muted)' }}
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Employees
@@ -63,20 +133,36 @@ export function EmployeeDetail() {
       <div className="card">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl">
-              {employeeData.avatar}
+            <div 
+              className="w-24 h-24 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+            >
+              {employee.avatarUrl ? (
+                <img 
+                  src={employee.avatarUrl} 
+                  alt={`${employee.firstName} ${employee.lastName}`}
+                  className="w-full h-full object-cover rounded-2xl"
+                />
+              ) : (
+                initials
+              )}
             </div>
             <div>
-              <h1 className="text-2xl font-display font-semibold text-white">
-                {employeeData.firstName} {employeeData.lastName}
+              <h1 
+                className="text-2xl font-display font-semibold"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {employee.firstName} {employee.lastName}
               </h1>
-              <p className="text-zinc-500 mt-1">{employeeData.position}</p>
+              <p style={{ color: 'var(--color-text-muted)' }} className="mt-1">
+                {employee.position}
+              </p>
               <div className="flex items-center gap-4 mt-3">
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-lg">
-                  Active
+                <span className={`px-3 py-1 ${status.bg} ${status.text} text-sm font-medium rounded-lg`}>
+                  {status.label}
                 </span>
                 <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-sm font-medium rounded-lg">
-                  English: {employeeData.englishLevel}
+                  English: {employee.englishLevel}
                 </span>
               </div>
             </div>
@@ -88,41 +174,60 @@ export function EmployeeDetail() {
         </div>
 
         {/* Contact info */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-zinc-800">
+        <div 
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6"
+          style={{ borderTop: '1px solid var(--color-border)' }}
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-zinc-800">
-              <Mail className="w-4 h-4 text-zinc-400" />
+            <div 
+              className="p-2 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <Mail className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Email</p>
-              <p className="text-sm text-white">{employeeData.email}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Email</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{employee.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-zinc-800">
-              <Phone className="w-4 h-4 text-zinc-400" />
+            <div 
+              className="p-2 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <Phone className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Phone</p>
-              <p className="text-sm text-white">{employeeData.phone}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Phone</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {employee.phone || 'Not provided'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-zinc-800">
-              <Building2 className="w-4 h-4 text-zinc-400" />
+            <div 
+              className="p-2 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <Briefcase className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Department</p>
-              <p className="text-sm text-white">{employeeData.department}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Position</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{employee.position}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-zinc-800">
-              <Calendar className="w-4 h-4 text-zinc-400" />
+            <div 
+              className="p-2 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <Calendar className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Hire Date</p>
-              <p className="text-sm text-white">{new Date(employeeData.hireDate).toLocaleDateString()}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Hire Date</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {new Date(employee.hireDate).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>
@@ -132,106 +237,125 @@ export function EmployeeDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Skills */}
         <div className="lg:col-span-2 card">
-          <h2 className="text-lg font-semibold text-white mb-4">Technical Skills</h2>
-          <div className="space-y-4">
-            {employeeData.skills.map((skill) => (
-              <div key={skill.name} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">{skill.name}</span>
-                  <span className="text-xs text-zinc-500">
-                    {levelLabels[skill.level]} · {skill.years} years
-                  </span>
+          <h2 
+            className="text-lg font-semibold mb-4"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Technical Skills
+          </h2>
+          {skills.length > 0 ? (
+            <div className="space-y-4">
+              {skills.map((employeeSkill) => (
+                <div key={employeeSkill.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span 
+                      className="text-sm font-medium"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
+                      {employeeSkill.skill?.name || `Skill ${employeeSkill.skillId}`}
+                    </span>
+                    <span 
+                      className="text-xs"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
+                      {levelLabels[employeeSkill.level]} · {employeeSkill.yearsOfExperience} years
+                    </span>
+                  </div>
+                  <div 
+                    className="h-2 rounded-full overflow-hidden"
+                    style={{ background: 'var(--color-bg-hover)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${(employeeSkill.level / 5) * 100}%`,
+                        background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})`
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(skill.level / 5) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Vacation balance */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-white mb-4">Vacation Balance</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-center">
-              <div className="relative w-32 h-32">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    fill="none"
-                    stroke="#27272a"
-                    strokeWidth="12"
-                  />
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    fill="none"
-                    stroke="url(#gradient)"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(employeeData.vacationBalance.remaining / employeeData.vacationBalance.total) * 352} 352`}
-                  />
-                  <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#a855f7" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-white">{employeeData.vacationBalance.remaining}</span>
-                  <span className="text-xs text-zinc-500">days left</span>
-                </div>
-              </div>
+              ))}
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-3 bg-zinc-800/50 rounded-lg">
-                <p className="text-xl font-semibold text-white">{employeeData.vacationBalance.total}</p>
-                <p className="text-xs text-zinc-500">Total</p>
-              </div>
-              <div className="p-3 bg-zinc-800/50 rounded-lg">
-                <p className="text-xl font-semibold text-amber-400">{employeeData.vacationBalance.used}</p>
-                <p className="text-xs text-zinc-500">Used</p>
-              </div>
-              <div className="p-3 bg-zinc-800/50 rounded-lg">
-                <p className="text-xl font-semibold text-emerald-400">{employeeData.vacationBalance.remaining}</p>
-                <p className="text-xs text-zinc-500">Left</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Projects */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-white mb-4">Current Projects</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {employeeData.projects.map((project) => (
-            <div
-              key={project.id}
-              className="p-4 bg-zinc-800/30 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+          ) : (
+            <div 
+              className="text-center py-8"
+              style={{ color: 'var(--color-text-muted)' }}
             >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-white">{project.name}</h3>
-                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded">
-                  {project.status}
-                </span>
-              </div>
-              <p className="text-sm text-zinc-500 mt-2">Role: {project.role}</p>
+              <p>No skills recorded yet</p>
             </div>
-          ))}
+          )}
+        </div>
+
+        {/* Employee Info */}
+        <div className="card">
+          <h2 
+            className="text-lg font-semibold mb-4"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Employee Info
+          </h2>
+          <div className="space-y-4">
+            <div 
+              className="p-3 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Employee ID
+              </p>
+              <p 
+                className="text-xl font-semibold"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                #{employee.id}
+              </p>
+            </div>
+            <div 
+              className="p-3 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                English Level
+              </p>
+              <p 
+                className="text-xl font-semibold"
+                style={{ color: 'var(--color-accent)' }}
+              >
+                {employee.englishLevel}
+              </p>
+            </div>
+            <div 
+              className="p-3 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Status
+              </p>
+              <p 
+                className={`text-xl font-semibold ${status.text}`}
+              >
+                {status.label}
+              </p>
+            </div>
+            <div 
+              className="p-3 rounded-lg"
+              style={{ background: 'var(--color-bg-hover)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Joined
+              </p>
+              <p 
+                className="text-xl font-semibold"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {new Date(employee.hireDate).toLocaleDateString('en-US', { 
+                  year: 'numeric',
+                  month: 'short'
+                })}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
-
-
