@@ -4,9 +4,9 @@ services:
     image: postgres:15-alpine
     container_name: telescope-db
     environment:
-      POSTGRES_USER: telescope
-      POSTGRES_PASSWORD: telescope_password
-      POSTGRES_DB: telescope
+      POSTGRES_USER: admin-db
+      POSTGRES_PASSWORD: db-password
+      POSTGRES_DB: telescope-db
     ports:
       - "5432:5432"
     volumes:

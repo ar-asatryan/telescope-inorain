@@ -1,9 +1,10 @@
 import 'reflect-metadata';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from the server root .env file
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const options: DataSourceOptions = {
   type: 'postgres',

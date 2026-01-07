@@ -19,6 +19,7 @@ A comprehensive web application for managing employee information, vacations, ti
 - [Environment Variables](#-environment-variables)
 - [Development](#-development)
 - [Deployment](#-deployment)
+- [Git Notes](#-git-notes)
 
 ---
 
@@ -475,6 +476,41 @@ npm run preview      # Preview production build
 - PostgreSQL 15
 - Nginx (reverse proxy)
 - SSL certificate for telescope.inorain.com
+
+---
+
+## 📝 Git Notes
+
+### Implementation of New Task via Correct Git Flow
+
+Follow these steps to create a new feature branch and push it to remote:
+
+#### Step 1: Switch to the `dev` branch
+```bash
+git checkout dev
+```
+
+#### Step 2: Pull the latest changes from remote `dev`
+```bash
+git pull origin dev --no-rebase
+```
+
+#### Step 3: Create your new feature branch
+```bash
+git checkout -b feature/your-feature-name
+```
+Replace `your-feature-name` with your actual feature name (e.g., `feature/user-auth`, `feature/dashboard-charts`).
+
+#### Step 4: Push the branch to remote
+```bash
+git push -u origin feature/your-feature-name
+```
+The `-u` flag sets up tracking, so future `git push` and `git pull` commands will work without specifying the remote branch.
+
+#### Quick One-Liner
+```bash
+git checkout dev && git pull origin dev --no-rebase && git checkout -b feature/your-feature-name && git push -u origin feature/your-feature-name
+```
 
 ---
 
